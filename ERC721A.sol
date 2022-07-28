@@ -68,43 +68,103 @@ contract ERC721A is
   // Custom Attr
   mapping(uint256 => uint256) private _sizeData;
   mapping(uint256 => uint256) private _cooldownData;
+  mapping(uint256 => uint256) private _upgradeTime;
 
   function sizeOf(uint tokenId) public view returns (uint256) {
-    require(_exists(tokenId), "ERC721A: query for nonexistent token");
+    require(_exists(tokenId), "This fish does not exist.");
     return _sizeData[tokenId];
   }
 
   /////////////////////////////////////////////////////TEST//////////
   function setSizeOf(uint tokenId, uint size) public {
-    require(_exists(tokenId), "ERC721A: query for nonexistent token");
+    require(_exists(tokenId), "This fish does not exist.");
     _sizeData[tokenId] = size;
+  }
+
+  function upgradeTimeOf(uint tokenId) public view returns (uint256) {
+    require(_exists(tokenId), "This fish does not exist.");
+    return _upgradeTime[tokenId];
+  }
+
+  function upgrade(uint tokenId) public payable {
+    require(_exists(tokenId), "This fish does not exist.");
+    uint fee = (levelOf(tokenId) * levelOf(tokenId) + levelOf(tokenId)) * 0.0015 ether;
+    require(msg.value >= fee, "Insufficient upgrade cost.");
+    require(_upgradeTime[tokenId] <= 3, "A fish can only be upgraded 3 times." );
+    _upgradeTime[tokenId] = _upgradeTime[tokenId] + 1;
+    setSizeOf(tokenId, sizeOf(tokenId) + levelOf(tokenId));
+    _cooldownData[tokenId] = block.number + levelOf(tokenId) * levelOf(tokenId) * 5  + 5;
   }
 
   /////////////////////////////////////////////////////TEST//////////
   function setCooldown(uint tokenId, uint blocknumber) public {
-    require(_exists(tokenId), "ERC721A: query for nonexistent token");
+    require(_exists(tokenId), "This fish does not exist.");
     _cooldownData[tokenId] = blocknumber;
   }
 
   function levelOf(uint tokenId) public view returns (uint256) {
-    require(_exists(tokenId), "ERC721A: query for nonexistent token");
+    require(_exists(tokenId), "This fish does not exist.");
     uint lv = (sqrt(1 + 8 * _sizeData[tokenId]) - 1) / 2 + 1;
     if (lv > 10) {
       lv = 10;
+    } else if (lv == 0) {
+      lv = 1;
     }
     return lv;
   }
 
   function cooldownOf(uint tokenId) public view returns (uint256) {
-    require(_exists(tokenId), "ERC721A: query for nonexistent token");
+    require(_exists(tokenId), "This fish does not exist.");
     return _cooldownData[tokenId];
   }
 
+  function typeOf(uint tokenId) public view returns (uint256) {
+    require(_exists(tokenId), "This fish does not exist.");
+    uint mod = tokenId * 5 % 68;
+    if (mod >= 66) {
+      return 18;
+    } else if (mod >= 62) {
+      return 17;
+    } else if (mod >= 60) {
+      return 16;
+    } else if (mod >= 58) {
+      return 15;
+    } else if (mod >= 55) {
+      return 14;
+    } else if (mod >= 52) {
+      return 13;
+    } else if (mod >= 51) {
+      return 12;
+    } else if (mod >= 48) {
+      return 11;
+    } else if (mod >= 44) {
+      return 10;
+    } else if (mod >= 40) {
+      return 9;
+    } else if (mod >= 36) {
+      return 8;
+    } else if (mod >= 32) {
+      return 7;
+    } else if (mod >= 28) {
+      return 6;
+    } else if (mod >= 23) {
+      return 5;
+    } else if (mod >= 18) {
+      return 4;
+    } else if (mod >= 12) {
+      return 3;
+    } else if (mod >= 6) {
+      return 2;
+    } else {
+      return 1;
+    }
+  }
+
   function eat(uint atkId, uint defId) public {
-    require(_exists(atkId) && _exists(defId), "FISH: query for nonexistent token");
-    require(ownerOf(atkId) == msg.sender, "FISH: you don't own this fish");
-    require(ownerOf(defId) != address(0xdead), "FISH: this fish is dead already");
-    require(_cooldownData[atkId] == 0 || _cooldownData[atkId] > block.number, "FISH: your fish is too tired to eat" );
+    require(_exists(atkId) && _exists(defId), "This fish does not exist.");
+    require(ownerOf(atkId) == msg.sender, "This is not your fish.");
+    require(ownerOf(defId) != address(0xdead), "This fish is dead already.");
+    require(_cooldownData[atkId] == 0 || _cooldownData[atkId] > block.number, "Your fish is too tired to eat." );
     
     if (levelOf(atkId) > levelOf(defId)) {
       setSizeOf(atkId, sizeOf(atkId) + (sizeOf(defId) <= 1 ? 1 : sizeOf(defId) / 2));
@@ -129,7 +189,7 @@ contract ERC721A is
   function _burn(
     uint256 tokenId
   ) internal {
-    require(_exists(tokenId), "FISH: query for nonexistent token");
+    require(_exists(tokenId), "This fish does not exist.");
     address from = ownerOf(tokenId);
     address to = address(0xdead);
 
@@ -309,28 +369,11 @@ contract ERC721A is
   function tokenURI(uint256 tokenId)
     public
     view
+    virtual
     override
     returns (string memory)
   {
-    require(
-    _exists(tokenId),
-    "ERC721Metadata: URI query for nonexistent token"
-    );
-
-    string memory output = "";
-
-    string memory json = "";
-    // string memory json = Base64.encode(bytes(string(abi.encodePacked(
-    //     '{"name": "Fish #',
-    //     toString(tokenId),
-    //     '", "type": ', toString(typeOf(tokenId)) ,' ,"description": "Swim and chow down on smaller fish, and chomp your way to ocean supremacy.","image":"data:image/svg+xml;base64,',
-    //     Base64.encode(bytes(output)),
-    //     '"}'
-    //     ))));
-
-    output = string(abi.encodePacked('data:application/json;base64,', json));
-
-    return output;
+    return "";
   }
 
   /**
